@@ -22,6 +22,12 @@
 // You can read more about the new JavaScript features here:
 // https://babeljs.io/docs/learn-es2015/
 
+// Set WordPress Path
+var wordpress_path = 'wpkit';
+
+// Set URL for PageSpeed Testing
+var website_url = 'example.com';
+
 import fs from 'fs';
 import path from 'path';
 import gulp from 'gulp';
@@ -38,7 +44,10 @@ const reload = browserSync.reload;
 
 // Lint JavaScript
 gulp.task('jshint', () =>
-  gulp.src('app/scripts/**/*.js')
+  return gulp.src([
+    'app/library/scripts/**/*.js',
+    '!app/library/scripts/vendor/**/*'
+  ])
     .pipe(reload({stream: true, once: true}))
     .pipe($.jshint())
     .pipe($.jshint.reporter('jshint-stylish'))
@@ -47,12 +56,12 @@ gulp.task('jshint', () =>
 
 // Optimize images
 gulp.task('images', () =>
-  gulp.src('app/images/**/*')
+  gulp.src('app/library/images/**/*')
     .pipe($.cache($.imagemin({
       progressive: true,
       interlaced: true
     })))
-    .pipe(gulp.dest('dist/images'))
+    .pipe(gulp.dest('dist/library/images'))
     .pipe($.size({title: 'images'}))
 );
 
@@ -61,7 +70,8 @@ gulp.task('copy', () =>
   gulp.src([
     'app/*',
     '!app/*.html',
-    'node_modules/apache-server-configs/dist/.htaccess'
+    'node_modules/apache-server-configs/dist/.htaccess',
+    'app/**/*.php',
   ], {
     dot: true
   }).pipe(gulp.dest('dist'))
@@ -70,8 +80,11 @@ gulp.task('copy', () =>
 
 // Copy web fonts to dist
 gulp.task('fonts', () =>
-  gulp.src(['app/fonts/**'])
-    .pipe(gulp.dest('dist/fonts'))
+  return gulp.src([
+    'app/library/fonts/*',
+    '!app/library/fonts/vendor'
+  ])
+    .pipe(gulp.dest('dist/library/fonts'))
     .pipe($.size({title: 'fonts'}))
 );
 
@@ -91,8 +104,9 @@ gulp.task('styles', () => {
 
   // For best performance, don't add Sass partials to `gulp.src`
   return gulp.src([
-    'app/**/*.scss',
-    'app/styles/**/*.css'
+    'app/library/styles/**/*.scss',
+    'app/library/styles/**/*.css',
+    '!app/library/styles/vendor'
   ])
     .pipe($.changed('.tmp/styles', {extension: '.css'}))
     .pipe($.sourcemaps.init())
@@ -104,23 +118,27 @@ gulp.task('styles', () => {
     // Concatenate and minify styles
     .pipe($.if('*.css', $.minifyCss()))
     .pipe($.sourcemaps.write())
-    .pipe(gulp.dest('dist'))
+    .pipe(gulp.dest('dist/library/styles'))
     .pipe($.size({title: 'styles'}));
 });
 
 // Concatenate and minify JavaScript
 gulp.task('scripts', () =>
-  gulp.src([
+  // gulp.src([
     // Note: Since we are not using useref in the scripts build pipeline,
     //       you need to explicitly list your scripts here in the right order
     //       to be correctly concatenated
-    './app/scripts/main.js'
+    // './app/scripts/main.js'
     // Other scripts
+  // ])
+  return gulp.src([
+    // 'app/library/scripts/**/*.js',
+    // '!app/library/scripts/vendor'
   ])
     .pipe($.concat('main.min.js'))
     .pipe($.uglify({preserveComments: 'some'}))
     // Output files
-    .pipe(gulp.dest('dist/scripts'))
+    .pipe(gulp.dest('dist/library/scripts'))
     .pipe($.size({title: 'scripts'}))
 );
 
@@ -132,7 +150,7 @@ gulp.task('html', () => {
     .pipe(assets)
     // Remove any unused CSS
     // Note: If not using the Style Guide, you can delete it from
-    //       the next line to only include styles your project uses.
+    // the next line to only include styles your project uses.
     .pipe($.if('*.css', $.uncss({
       html: [
         'app/index.html'
@@ -161,7 +179,7 @@ gulp.task('html', () => {
 gulp.task('clean', cb => del(['.tmp', 'dist/*', '!dist/.git'], {dot: true}, cb));
 
 // Watch files for changes & reload
-gulp.task('serve', ['styles'], () => {
+gulp.task('serve', ['bower', 'styles'], () => {
   browserSync({
     notify: false,
     // Customize the BrowserSync console logging prefix
@@ -170,13 +188,14 @@ gulp.task('serve', ['styles'], () => {
     // Note: this uses an unsigned certificate which on first access
     //       will present a certificate warning in the browser.
     // https: true,
-    server: ['.tmp', 'app']
+    // server: ['.tmp', 'app']
+    proxy: 'localhost/' + wordpress_path
   });
 
-  gulp.watch(['app/**/*.html'], reload);
-  gulp.watch(['app/styles/**/*.{scss,css}'], ['styles', reload]);
-  gulp.watch(['app/scripts/**/*.js'], ['jshint']);
-  gulp.watch(['app/images/**/*'], reload);
+  gulp.watch(['app/**/*.{php,html}'], reload);
+  gulp.watch(['app/library/styles/**/*.{scss,css}'], ['styles', reload]);
+  gulp.watch(['app/library/scripts/**/*.js'], ['jshint']);
+  gulp.watch(['app/library/images/**/*'], reload);
 });
 
 // Build and serve the output from the dist build
@@ -206,7 +225,7 @@ gulp.task('default', ['clean'], cb =>
 // Run PageSpeed Insights
 gulp.task('pagespeed', cb =>
   // Update the below URL to the public URL of your site
-  pagespeed('example.com', {
+  pagespeed( website_url, {
     strategy: 'mobile',
     // By default we use the PageSpeed Insights free (no API key) tier.
     // Use a Google Developer API key if you have one: http://goo.gl/RkN0vE
@@ -227,11 +246,11 @@ gulp.task('generate-service-worker', cb => {
     cacheId: pkg.name || 'web-starter-kit',
     staticFileGlobs: [
       // Add/remove glob patterns to match your directory setup.
-      `${rootDir}/fonts/**/*.woff`,
-      `${rootDir}/images/**/*`,
-      `${rootDir}/scripts/**/*.js`,
-      `${rootDir}/styles/**/*.css`,
-      `${rootDir}/*.{html,json}`
+      `${rootDir}/library/fonts/**/*.woff`,
+      `${rootDir}/library/images/**/*`,
+      `${rootDir}/library/scripts/**/*.js`,
+      `${rootDir}/library/styles/**/*.css`,
+      `${rootDir}/*.{html,json,php}`
     ],
     // Translates a static file path to the relative URL that it's served from.
     stripPrefix: path.join(rootDir, path.sep)
@@ -256,3 +275,16 @@ gulp.task('generate-service-worker', cb => {
 
 // Load custom tasks from the `tasks` directory
 // try { require('require-dir')('tasks'); } catch (err) { console.error(err); }
+
+// Bower
+gulp.task('bower', () =>
+  // Copy Fonts
+  gulp.src('./bower_components/**/*.{eot,otf,svg,ttf,woff,woff2}')
+    .pipe(gulp.dest('app/library/fonts/vendor'))
+  // Copy Scripts
+  gulp.src('./bower_components/**/*.js')
+    .pipe(gulp.dest('app/library/scripts/vendor'))
+  // Copy Styles
+  gulp.src('./bower_components/**/*.{css,scss}')
+    .pipe(gulp.dest('app/library/styles/vendor'))
+);
