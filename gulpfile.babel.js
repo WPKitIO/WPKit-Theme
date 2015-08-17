@@ -188,8 +188,8 @@ gulp.task('serve', ['bower', 'styles'], () => {
     // Note: this uses an unsigned certificate which on first access
     //       will present a certificate warning in the browser.
     // https: true,
-    server: ['.tmp', 'app']
-    // proxy: 'localhost/' + wordpress_path
+    // server: ['.tmp', 'app']
+    proxy: 'localhost/' + wordpress_path
   });
 
   gulp.watch(['app/**/*.{php,html}'], reload);
