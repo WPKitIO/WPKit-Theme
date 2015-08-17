@@ -44,7 +44,7 @@ const reload = browserSync.reload;
 
 // Lint JavaScript
 gulp.task('jshint', () =>
-  return gulp.src([
+  gulp.src([
     'app/library/scripts/**/*.js',
     '!app/library/scripts/vendor/**/*'
   ])
@@ -80,7 +80,7 @@ gulp.task('copy', () =>
 
 // Copy web fonts to dist
 gulp.task('fonts', () =>
-  return gulp.src([
+  gulp.src([
     'app/library/fonts/*',
     '!app/library/fonts/vendor'
   ])
@@ -114,7 +114,7 @@ gulp.task('styles', () => {
       precision: 10
     }).on('error', $.sass.logError))
     .pipe($.autoprefixer(AUTOPREFIXER_BROWSERS))
-    .pipe(gulp.dest('.tmp'))
+    .pipe(gulp.dest('.tmp/library/styles'))
     // Concatenate and minify styles
     .pipe($.if('*.css', $.minifyCss()))
     .pipe($.sourcemaps.write())
@@ -131,7 +131,7 @@ gulp.task('scripts', () =>
     // './app/scripts/main.js'
     // Other scripts
   // ])
-  return gulp.src([
+  gulp.src([
     // 'app/library/scripts/**/*.js',
     // '!app/library/scripts/vendor'
   ])
@@ -188,8 +188,8 @@ gulp.task('serve', ['bower', 'styles'], () => {
     // Note: this uses an unsigned certificate which on first access
     //       will present a certificate warning in the browser.
     // https: true,
-    // server: ['.tmp', 'app']
-    proxy: 'localhost/' + wordpress_path
+    server: ['.tmp', 'app']
+    // proxy: 'localhost/' + wordpress_path
   });
 
   gulp.watch(['app/**/*.{php,html}'], reload);
@@ -277,7 +277,7 @@ gulp.task('generate-service-worker', cb => {
 // try { require('require-dir')('tasks'); } catch (err) { console.error(err); }
 
 // Bower
-gulp.task('bower', () =>
+gulp.task('bower', () => {
   // Copy Fonts
   gulp.src('./bower_components/**/*.{eot,otf,svg,ttf,woff,woff2}')
     .pipe(gulp.dest('app/library/fonts/vendor'))
@@ -287,4 +287,4 @@ gulp.task('bower', () =>
   // Copy Styles
   gulp.src('./bower_components/**/*.{css,scss}')
     .pipe(gulp.dest('app/library/styles/vendor'))
-);
+});
