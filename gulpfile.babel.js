@@ -104,17 +104,16 @@ gulp.task('styles', () => {
 
   // For best performance, don't add Sass partials to `gulp.src`
   return gulp.src([
-    'app/library/styles/**/*.scss',
-    'app/library/styles/**/*.css',
+    'app/library/styles/**/*.{css,scss}',
     '!app/library/styles/vendor'
   ])
-    .pipe($.changed('.tmp/styles', {extension: '.css'}))
+    .pipe($.changed('app/.tmp/library/styles', {extension: '.css'}))
     .pipe($.sourcemaps.init())
     .pipe($.sass({
       precision: 10
     }).on('error', $.sass.logError))
     .pipe($.autoprefixer(AUTOPREFIXER_BROWSERS))
-    .pipe(gulp.dest('.tmp/library/styles'))
+    .pipe(gulp.dest('app/.tmp/library/styles'))
     // Concatenate and minify styles
     .pipe($.if('*.css', $.minifyCss()))
     .pipe($.sourcemaps.write())
@@ -144,7 +143,7 @@ gulp.task('scripts', () =>
 
 // Scan your HTML for assets & optimize them
 gulp.task('html', () => {
-  const assets = $.useref.assets({searchPath: '{.tmp,app}'});
+  const assets = $.useref.assets({searchPath: '{app/.tmp, app}'});
 
   return gulp.src('app/**/*.html')
     .pipe(assets)
@@ -176,7 +175,7 @@ gulp.task('html', () => {
 });
 
 // Clean output directory
-gulp.task('clean', cb => del(['.tmp', 'dist/*', '!dist/.git'], {dot: true}, cb));
+gulp.task('clean', cb => del(['.tmp', 'app/.tmp', 'dist/*', '!dist/.git'], {dot: true}, cb));
 
 // Watch files for changes & reload
 gulp.task('serve', ['bower', 'styles'], () => {
